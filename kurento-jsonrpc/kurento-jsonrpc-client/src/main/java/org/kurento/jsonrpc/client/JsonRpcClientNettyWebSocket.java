@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
 import javax.net.ssl.SSLException;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,6 +152,8 @@ public class JsonRpcClientNettyWebSocket extends AbstractJsonRpcClientWebSocket 
 
   private static final Logger log = LoggerFactory.getLogger(JsonRpcClientNettyWebSocket.class);
 
+	private TrustManagerFactory trustManagerFactory;
+
   private volatile Channel channel;
   private volatile EventLoopGroup group;
   private volatile JsonRpcWebSocketClientHandler handler;
@@ -160,9 +163,15 @@ public class JsonRpcClientNettyWebSocket extends AbstractJsonRpcClientWebSocket 
   }
 
   public JsonRpcClientNettyWebSocket(String url, JsonRpcWSConnectionListener connectionListener) {
-    super(url, connectionListener);
-    log.debug("{} Creating JsonRPC NETTY Websocket client", label);
+		this(url, connectionListener, null);
   }
+
+	public JsonRpcClientNettyWebSocket(String url, JsonRpcWSConnectionListener connectionListener,
+			TrustManagerFactory trustManagerFactory) {
+		super(url, connectionListener);
+		this.trustManagerFactory = trustManagerFactory;
+		log.debug("{} Creating JsonRPC NETTY Websocket client", label);
+	}
 
   @Override
   protected void sendTextMessage(String jsonMessage) throws IOException {
@@ -193,8 +202,7 @@ public class JsonRpcClientNettyWebSocket extends AbstractJsonRpcClientWebSocket 
       final boolean ssl = "wss".equalsIgnoreCase(this.uri.getScheme());
       final SslContext sslCtx;
       try {
-        sslCtx = ssl ? SslContextBuilder.forClient()
-            .trustManager(InsecureTrustManagerFactory.INSTANCE).build() : null;
+        sslCtx = ssl ? createSslContext() : null;
       } catch (SSLException e) {
         log.error("{} Could not create SSL Context", label, e);
         throw new IllegalArgumentException(
@@ -309,4 +317,12 @@ public class JsonRpcClientNettyWebSocket extends AbstractJsonRpcClientWebSocket 
     }
   }
 
+	protected SslContext createSslContext() throws SSLException {
+		if (trustManagerFactory == null) {
+			trustManagerFactory = InsecureTrustManagerFactory.INSTANCE;
+			log.warn("Using an insecure TrustManagerFactory that trusts all X.509 certificates without any verification.");
+		}
+
+		return SslContextBuilder.forClient().trustManager(trustManagerFactory).build();
+	}
 }
