@@ -66,7 +66,7 @@ public abstract class AbstractJsonRpcClientWebSocket extends JsonRpcClient {
   private static Logger log = LoggerFactory.getLogger(AbstractJsonRpcClientWebSocket.class);
 
   protected static final long RECONNECT_DELAY_TIME_MILLIS =
-      PropertiesManager.getProperty("jsonRpcClientWebSocket.reconnectionDelay", 2000);
+			PropertiesManager.getProperty("jsonRpcClientWebSocket.reconnectionDelay", 5000);
 
   private long requestTimeout =
       PropertiesManager.getProperty("jsonRpcClientWebSocket.timeout", 60000);
@@ -607,7 +607,7 @@ public abstract class AbstractJsonRpcClientWebSocket extends JsonRpcClient {
   }
 
   private void reconnect(final String closeReason) {
-    reconnect(closeReason, 0, true);
+		reconnect(closeReason, RECONNECT_DELAY_TIME_MILLIS, true);
   }
 
   private void reconnect(final String closeReason, final long delayMillis,
